@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -56,7 +57,8 @@ class TerminalConfigurationTests(unittest.TestCase):
             "top-secret-value",
         )
         self.assertNotIn("top-secret-value", "\n".join(output))
-        self.assertEqual(self.credentials.stat().st_mode & 0o777, 0o600)
+        if os.name != "nt":
+            self.assertEqual(self.credentials.stat().st_mode & 0o777, 0o600)
 
     def test_blank_key_preserves_saved_credential(self) -> None:
         self.credentials.write_text(
