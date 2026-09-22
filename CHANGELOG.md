@@ -4,6 +4,19 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-22
+
+### Added
+
+- Hermes Agent compatibility metadata and direct nested-skill installation documentation.
+- Interactive `configure --terminal` workflow for headless servers, with hidden API-key input, model discovery, connection testing, translation defaults, image-provider settings, and glossary import/editing.
+- Hermes gateway guidance for per-book default/custom selection and verified EPUB document delivery.
+
+### Changed
+
+- Skill bundle now directly references every runtime script and operational reference so third-party Agent Skills installers include transitive support files.
+- Documentation distinguishes the local desktop web page from the no-listener server terminal workflow.
+
 ## [0.3.0] - 2026-09-22
 
 ### Added
@@ -46,7 +59,8 @@ All notable changes will be documented here. The project follows [Semantic Versi
 - EPUB structure verification, visible-text contamination detection, atomic delivery, and versioned resume safety policies.
 - Pinned temporary `bilingual_book_maker` fork containing the fix proposed in upstream PR #575.
 
-[Unreleased]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sl2782087/clasp-epub-ai-translator/releases/tag/v0.1.0

@@ -8,7 +8,7 @@
 - Hidden work directories: source copies, prompts, checkpoints, caches, validation reports, intermediate EPUBs, and image context files containing terminology, handoff notes, metadata, and bounded nearby prose needed for resume and audit.
 - Final EPUB/AZW3 output in the user-selected output directory.
 
-The source EPUB is never overwritten. The local configuration page binds to `127.0.0.1`, loads no external assets, does not receive an EPUB, and never returns a previously saved key to the browser.
+The source EPUB is never overwritten. The local configuration page binds to `127.0.0.1`, loads no external assets, does not receive an EPUB, and never returns a previously saved key to the browser. The headless-server terminal wizard opens no listener, reads newly entered keys with hidden terminal input, and never accepts a key as a command-line argument. On Hermes Agent, these files belong to the operating-system account running Hermes unless path overrides are configured.
 
 ## What leaves the device
 
@@ -28,7 +28,7 @@ Do not commit, upload, or share `credentials.json`, books, caches, or translated
 
 ## 中文摘要
 
-项目只在本地保存普通设置、明文凭据、术语表、中间工作文件、图片上下文文件和输出文件。图片上下文可能含书籍元数据、术语、翻译交接摘要及每张图附近的有限正文。配置页仅监听 `127.0.0.1`，不加载外部资源，不接收书籍，也不会把已保存的 Key 回显到浏览器。
+项目只在本地保存普通设置、明文凭据、术语表、中间工作文件、图片上下文文件和输出文件。图片上下文可能含书籍元数据、术语、翻译交接摘要及每张图附近的有限正文。配置页仅监听 `127.0.0.1`，不加载外部资源，不接收书籍，也不会把已保存的 Key 回显到浏览器。无桌面服务器的终端向导不监听端口，通过隐藏输入接收新 Key，也不接受命令参数形式的 Key；在 Hermes Agent 上，这些文件默认属于运行 Hermes 的系统账号。
 
 正文会直接发送到用户选择的模型服务。高保真图片流程默认使用本地确定性工具；只有用户明确同意远程视觉或生成式编辑步骤时，对应图片、蒙版及选中的有限术语/邻近正文才会发送。明确标为实验性的自动图片模式会向配置接口发送候选图片、最多 30 KB 的已配置术语表和最多 8 KB 的图片附近正文，不会自动把整本书作为图片上下文发送。模型列表与接口测试会访问服务商，但不发送书籍正文。项目没有中转服务器、统计、遥测、广告或开发者侧数据收集。服务商如何处理数据，以其条款和隐私设置为准。
 

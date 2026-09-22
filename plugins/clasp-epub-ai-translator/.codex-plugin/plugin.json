@@ -1,6 +1,6 @@
 {
   "name": "clasp-epub-ai-translator",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Translate DRM-free EPUB text and optional images with configurable AI providers, safety checks, and structure-preserving output.",
   "author": {
     "name": "sl2782087",
@@ -9,7 +9,7 @@
   "homepage": "https://github.com/sl2782087/clasp-epub-ai-translator#readme",
   "repository": "https://github.com/sl2782087/clasp-epub-ai-translator",
   "license": "MIT",
-  "keywords": ["epub", "translation", "ai", "bilingual", "japanese", "chinese", "codex-skill"],
+  "keywords": ["epub", "translation", "ai", "bilingual", "japanese", "chinese", "codex-skill", "hermes-agent"],
   "skills": "./skills/",
   "interface": {
     "displayName": "暗扣 AI 电子书翻译",
@@ -17,7 +17,7 @@
     "longDescription": "A guided Codex skill for translating DRM-free EPUB books into Chinese or bilingual editions while preserving structure, with local configuration, terminology controls, reviewed high-fidelity image localization, resumable work, and content-safety validation.",
     "developerName": "sl2782087",
     "category": "Productivity",
-    "capabilities": ["Local file read/write", "External model API requests", "Interactive local configuration"],
+    "capabilities": ["Local file read/write", "External model API requests", "Interactive web or terminal configuration"],
     "websiteURL": "https://github.com/sl2782087/clasp-epub-ai-translator",
     "privacyPolicyURL": "https://github.com/sl2782087/clasp-epub-ai-translator/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/sl2782087/clasp-epub-ai-translator/blob/main/DISCLAIMER.md",

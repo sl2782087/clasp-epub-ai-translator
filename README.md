@@ -1,6 +1,6 @@
 # Clasp EPUB AI Translator
 
-**暗扣 AI 电子书翻译** is an open-source Codex plugin and skill for translating DRM-free EPUB books into Chinese-only or Japanese–Chinese bilingual editions. It keeps the source book untouched, preserves EPUB structure, supports configurable model providers and terminology, and can optionally localize text-bearing images.
+**暗扣 AI 电子书翻译** is an open-source Codex plugin and Agent Skill for translating DRM-free EPUB books into Chinese-only or Japanese–Chinese bilingual editions. It works with Codex and NousResearch Hermes Agent, keeps the source book untouched, preserves EPUB structure, supports configurable model providers and terminology, and can optionally localize text-bearing images.
 
 [简体中文说明](README.zh-CN.md) · [Disclaimer](DISCLAIMER.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
 
@@ -10,7 +10,7 @@
 ## Highlights
 
 - Guided choices for Chinese-only/bilingual output, Simplified/Traditional Chinese, horizontal/vertical/preserved layout, translation style, context, sample/full scope, and optional Calibre checks.
-- A local-only configuration page for providers, API endpoints, model discovery, connection tests, defaults, and a reusable manual glossary.
+- A local-only configuration page for desktops plus a hidden-input terminal wizard for Hermes Agent/headless servers, covering providers, API endpoints, model discovery, connection tests, defaults, and a reusable manual glossary.
 - Plaintext credentials stored separately from ordinary settings with restrictive file permissions where supported. Saved keys are never returned to the browser.
 - High-fidelity reviewed image localization: full inventory including covers, prose-aware terminology context, per-image method selection, clean-plate and typography review, explicit pixel protection, lossless optimization, and surgical EPUB repacking.
 - Structure validation plus a visible-text contamination gate that blocks model analysis, self-checks, and JSON/schema residue from being silently delivered.
@@ -19,7 +19,7 @@
 
 ## Requirements
 
-- Codex with plugin support
+- Codex with plugin support, or NousResearch Hermes Agent
 - Python 3.10+
 - [`uv`](https://docs.astral.sh/uv/)
 - Network access and credentials for the model provider you choose, unless using a local provider
@@ -42,6 +42,22 @@ Start a new Codex task after installation so the skill is loaded. You can then a
 ```text
 Use $clasp-epub-ai-translator to inspect this EPUB and recommend translation settings.
 ```
+
+### Hermes Agent / server install
+
+Install the nested skill directly from GitHub:
+
+```bash
+hermes skills install sl2782087/clasp-epub-ai-translator/plugins/clasp-epub-ai-translator/skills/clasp-epub-ai-translator
+```
+
+Then run the configuration wizard in a real terminal on the server—no browser, public listener, or SSH tunnel is needed:
+
+```bash
+uv run --script scripts/epub_translate.py configure --terminal
+```
+
+The wizard uses hidden input for keys and saves them only in the server user's local plaintext credentials file. Never paste keys into a Hermes gateway chat or pass them as command arguments. Hermes should ask before each book whether to use saved defaults or one-off choices. See the [Hermes Agent guide](plugins/clasp-epub-ai-translator/skills/clasp-epub-ai-translator/references/hermes-agent.md) for service-account paths, updates, and gateway file delivery.
 
 For development or manual use, clone the repository and work in:
 
@@ -69,6 +85,9 @@ uv run --script scripts/epub_translate.py inspect /path/to/book.epub
 # Open a temporary configuration page bound to 127.0.0.1
 uv run --script scripts/epub_translate.py configure
 
+# Or configure entirely in an interactive terminal on a headless server
+uv run --script scripts/epub_translate.py configure --terminal
+
 # Show an exact, non-mutating plan
 uv run --script scripts/epub_translate.py plan /path/to/book.epub
 
@@ -91,7 +110,7 @@ The older endpoint-driven `auto` and `all` modes remain available for compatibil
 
 ## Configuration and data flow
 
-The configuration page is book-independent and uses no external web assets. By default, settings live under the platform configuration directory named `clasp-epub-ai-translator`. Provider keys are stored in a separate plaintext `credentials.json`, and the reusable terminology file is `glossary.txt`. Environment variables can override all three paths.
+Both configuration interfaces are book-independent. The web page binds only to `127.0.0.1` and uses no external assets; the server wizard stays in the terminal and hides key entry. By default, settings live under the platform configuration directory named `clasp-epub-ai-translator`. Provider keys are stored in a separate plaintext `credentials.json`, and the reusable terminology file is `glossary.txt`. Environment variables can override all three paths.
 
 Book text is sent to the provider selected by the user. Reviewed image localization uses local deterministic tools by default; an image or its bounded relevant terminology/nearby prose leaves the device only if the user authorizes a vision or generative-editing provider for a specific step. Experimental automatic image modes send candidate images, the configured glossary, and bounded prose near each image to their configured endpoint, never the whole book as image context. The project does not operate a relay server or receive this content. See [PRIVACY.md](PRIVACY.md) for exact behavior.
 

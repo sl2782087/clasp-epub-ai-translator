@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import hashlib
 import html
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -1008,6 +1009,348 @@ def run_configuration_ui(no_open: bool = False, timeout: int = 900) -> dict:
     return server.result
 
 
+TERMINAL_CHOICES = {
+    "engine": [
+        ("openai", "OpenAI 或 OpenAI 兼容接口"),
+        ("gemini", "Google Gemini"),
+        ("claude", "Anthropic Claude"),
+        ("qwen", "通义千问"),
+        ("deepl", "DeepL"),
+        ("ollama", "Ollama 本地/自托管模型"),
+        ("google", "Google 免费翻译"),
+        ("codex", "Codex CLI（仅已登录的机器）"),
+    ],
+    "mode": [("chinese", "仅中文"), ("bilingual", "双语")],
+    "language": [("zh-hans", "简体中文"), ("zh-hant", "繁体中文")],
+    "layout": [
+        ("horizontal", "横排"),
+        ("vertical", "竖排"),
+        ("preserve", "保持原书")
+    ],
+    "quality": [
+        ("economy", "经济"),
+        ("balanced", "均衡"),
+        ("quality", "高质量")
+    ],
+    "style": [
+        ("faithful", "忠实文学中文"),
+        ("literal", "直译"),
+        ("polished", "润色出版风格")
+    ],
+    "context": [
+        ("session", "全书会话上下文"),
+        ("window", "滑动窗口"),
+        ("none", "无上下文")
+    ],
+    "scope": [("sample", "先译样章"), ("full", "翻译全书")],
+    "glossary_default": [("off", "默认关闭"), ("on", "默认启用")],
+    "glossary_auto": [("off", "关闭自动术语学习"), ("on", "启用自动术语学习")],
+    "image_translation": [
+        ("off", "不翻译图片"),
+        ("review", "高保真人工复核流程（推荐）"),
+        ("auto", "实验性自动图片翻译"),
+        ("all", "实验性翻译全部图片")
+    ],
+    "image_provider": [
+        ("reuse", "复用文字翻译接口"),
+        ("custom", "单独配置 OpenAI 兼容图片接口")
+    ],
+    "image_quality": [("low", "低"), ("medium", "中"), ("high", "高")],
+    "image_cover": [("off", "跳过封面"), ("on", "包括封面")],
+    "calibre": [
+        ("none", "不使用 Calibre"),
+        ("metadata", "只检查元数据"),
+        ("azw3", "另外生成 AZW3")
+    ],
+}
+
+
+def terminal_choice(
+    label: str,
+    choices: list[tuple[str, str]],
+    current: str,
+    input_fn=input,
+    output_fn=print,
+) -> str:
+    """Prompt for a numbered choice, retrying without losing wizard state."""
+    while True:
+        output_fn(f"\n{label}（当前：{current or '未设置'}）")
+        for index, (value, description) in enumerate(choices, 1):
+            marker = " *" if value == current else ""
+            output_fn(f"  {index}. {description} [{value}]{marker}")
+        answer = input_fn("输入编号或值，直接回车保留当前值：").strip()
+        if not answer:
+            return current
+        if answer.isdigit() and 1 <= int(answer) <= len(choices):
+            return choices[int(answer) - 1][0]
+        allowed = {value for value, _description in choices}
+        if answer in allowed:
+            return answer
+        output_fn("输入无效，请重试。")
+
+
+def terminal_yes_no(
+    label: str, default: bool, input_fn=input, output_fn=print
+) -> bool:
+    hint = "Y/n" if default else "y/N"
+    while True:
+        answer = input_fn(f"{label} [{hint}]：").strip().lower()
+        if not answer:
+            return default
+        if answer in {"y", "yes", "是"}:
+            return True
+        if answer in {"n", "no", "否"}:
+            return False
+        output_fn("请输入 y 或 n。")
+
+
+def terminal_text(label: str, current: str, input_fn=input) -> str:
+    shown = current or "未设置"
+    answer = input_fn(f"{label}（当前：{shown}，回车保留，输入 - 清空）：").strip()
+    if answer == "-":
+        return ""
+    return answer if answer else current
+
+
+def terminal_api_base(
+    label: str, current: str, input_fn=input, output_fn=print
+) -> str:
+    while True:
+        value = terminal_text(label, current, input_fn)
+        try:
+            return validate_api_base(value)
+        except ValueError as exc:
+            output_fn(str(exc))
+
+
+def terminal_integer(
+    label: str,
+    current: int,
+    minimum: int,
+    maximum: int,
+    input_fn=input,
+    output_fn=print,
+) -> int:
+    while True:
+        answer = input_fn(f"{label}（当前：{current}，回车保留）：").strip()
+        if not answer:
+            return current
+        try:
+            value = int(answer)
+        except ValueError:
+            output_fn("请输入整数。")
+            continue
+        if minimum <= value <= maximum:
+            return value
+        output_fn(f"请输入 {minimum} 到 {maximum} 之间的整数。")
+
+
+def terminal_model_choice(
+    models: list[str], current: str, input_fn=input, output_fn=print
+) -> str:
+    displayed = models[:100]
+    choices = [(model, model) for model in displayed]
+    choices.append(("__manual__", "手工输入其他模型名"))
+    selected = terminal_choice("选择模型", choices, current, input_fn, output_fn)
+    if selected == "__manual__":
+        return terminal_text("模型名", current, input_fn)
+    if len(models) > len(displayed):
+        output_fn(f"模型较多，仅显示前 {len(displayed)} 个；可选择手工输入。")
+    return selected
+
+
+def terminal_glossary(
+    current: str, input_fn=input, output_fn=print
+) -> tuple[str, int]:
+    action = terminal_choice(
+        "手工术语表",
+        [
+            ("keep", "保留当前术语表"),
+            ("import", "从 UTF-8 文本文件导入"),
+            ("manual", "在终端逐行输入"),
+            ("clear", "清空术语表"),
+        ],
+        "keep",
+        input_fn,
+        output_fn,
+    )
+    if action == "keep":
+        return normalize_glossary(current)
+    if action == "clear":
+        return "", 0
+    if action == "import":
+        while True:
+            raw_path = input_fn("UTF-8 术语表路径：").strip()
+            try:
+                text = Path(raw_path).expanduser().resolve().read_text(encoding="utf-8")
+                return normalize_glossary(text)
+            except (OSError, UnicodeError, ValueError) as exc:
+                output_fn(f"无法导入：{exc}")
+    while True:
+        output_fn("每行输入“原文 -> 译文”；输入空行结束。")
+        lines: list[str] = []
+        while True:
+            line = input_fn("术语：")
+            if not line.strip():
+                break
+            lines.append(line)
+        try:
+            return normalize_glossary("\n".join(lines))
+        except ValueError as exc:
+            output_fn(f"术语表格式错误：{exc}，请重新输入。")
+
+
+def run_terminal_configuration(
+    input_fn=input,
+    secret_fn=getpass.getpass,
+    output_fn=print,
+) -> dict:
+    """Configure providers and translation defaults entirely in a terminal."""
+    current = load_settings()
+    values = dict(current)
+    output_fn("暗扣 AI 电子书翻译：终端配置")
+    output_fn("直接回车会保留当前值。API Key 使用隐藏输入，不会显示在终端。")
+
+    values["engine"] = terminal_choice(
+        "文字翻译引擎", TERMINAL_CHOICES["engine"], current["engine"], input_fn, output_fn
+    )
+    same_engine = values["engine"] == current["engine"]
+    values["api_base"] = terminal_api_base(
+        "API Base", current["api_base"] if same_engine else "", input_fn, output_fn
+    )
+    api_key = ""
+    if values["engine"] in ENGINE_KEY_ENV:
+        status = key_status(values["engine"])
+        output_fn(f"API Key 状态：{status}")
+        api_key = secret_fn("API Key（隐藏输入；回车保留环境变量或已保存值）：").strip()
+        if len(api_key) > 4096:
+            raise ValueError("API Key 长度异常")
+
+    values["model"] = terminal_text(
+        "模型名", current["model"] if same_engine else "", input_fn
+    )
+    if terminal_yes_no("现在拉取支持的模型列表吗？", False, input_fn, output_fn):
+        try:
+            result = provider_models(values["engine"], values["api_base"], api_key)
+            output_fn(result["message"])
+            if result.get("models"):
+                values["model"] = terminal_model_choice(
+                    result["models"], values["model"], input_fn, output_fn
+                )
+        except (ValueError, OSError, subprocess.SubprocessError) as exc:
+            output_fn(f"获取模型列表失败：{exc}")
+    if terminal_yes_no("现在测试文字接口吗？", False, input_fn, output_fn):
+        try:
+            result = provider_connection_test(
+                values["engine"], values["api_base"], api_key
+            )
+            output_fn(result["message"])
+        except (ValueError, OSError, subprocess.SubprocessError) as exc:
+            output_fn(f"接口测试失败：{exc}")
+
+    for name, label in (
+        ("mode", "输出模式"),
+        ("language", "目标中文"),
+        ("layout", "版式"),
+        ("quality", "翻译质量"),
+        ("style", "翻译风格"),
+        ("context", "上下文模式"),
+        ("scope", "默认翻译范围"),
+        ("glossary_default", "手工术语表默认状态"),
+        ("glossary_auto", "自动术语学习"),
+        ("image_translation", "图片翻译模式"),
+        ("calibre", "Calibre 处理"),
+    ):
+        values[name] = terminal_choice(
+            label, TERMINAL_CHOICES[name], values[name], input_fn, output_fn
+        )
+        if name == "scope" and values[name] == "sample":
+            values["sample_chapters"] = terminal_integer(
+                "样章章节数", int(values["sample_chapters"]), 1, 20, input_fn, output_fn
+            )
+
+    image_api_key = ""
+    if values["image_translation"] in {"auto", "all"}:
+        values["image_provider"] = terminal_choice(
+            "图片接口来源",
+            TERMINAL_CHOICES["image_provider"],
+            values["image_provider"],
+            input_fn,
+            output_fn,
+        )
+        if values["image_provider"] == "custom":
+            values["image_api_base"] = terminal_api_base(
+                "图片 API Base", values["image_api_base"], input_fn, output_fn
+            )
+            output_fn(f"图片 API Key 状态：{image_key_status()}")
+            image_api_key = secret_fn(
+                "图片 API Key（隐藏输入；回车保留环境变量或已保存值）："
+            ).strip()
+            if len(image_api_key) > 4096:
+                raise ValueError("图片 API Key 长度异常")
+        image_form = {
+            **values,
+            "api_key": api_key,
+            "image_api_key": image_api_key,
+        }
+        if terminal_yes_no("现在拉取图片接口模型列表吗？", False, input_fn, output_fn):
+            try:
+                result = image_provider_models(image_form)
+                output_fn(result["message"])
+                values["image_vision_model"] = terminal_model_choice(
+                    result["models"], values["image_vision_model"], input_fn, output_fn
+                )
+                values["image_edit_model"] = terminal_model_choice(
+                    result["models"], values["image_edit_model"], input_fn, output_fn
+                )
+            except (ValueError, OSError) as exc:
+                output_fn(f"获取图片模型列表失败：{exc}")
+        values["image_vision_model"] = terminal_text(
+            "视觉/OCR 模型", values["image_vision_model"], input_fn
+        )
+        values["image_edit_model"] = terminal_text(
+            "图片编辑模型", values["image_edit_model"], input_fn
+        )
+        values["image_quality"] = terminal_choice(
+            "图片质量", TERMINAL_CHOICES["image_quality"], values["image_quality"], input_fn, output_fn
+        )
+        values["image_limit"] = terminal_integer(
+            "图片样张数量（0 表示不限）", int(values["image_limit"]), 0, 100, input_fn, output_fn
+        )
+        values["image_cover"] = terminal_choice(
+            "封面处理", TERMINAL_CHOICES["image_cover"], values["image_cover"], input_fn, output_fn
+        )
+        if terminal_yes_no("现在测试图片接口吗？", False, input_fn, output_fn):
+            try:
+                result = image_provider_connection_test(
+                    {**values, "api_key": api_key, "image_api_key": image_api_key}
+                )
+                output_fn(result["message"])
+            except (ValueError, OSError) as exc:
+                output_fn(f"图片接口测试失败：{exc}")
+
+    normalized_glossary, glossary_count = terminal_glossary(
+        load_glossary_text(), input_fn, output_fn
+    )
+    if values["glossary_default"] == "on" and not glossary_count:
+        raise ValueError("默认启用手工术语表时，至少需要一条有效术语")
+    validated = validate_settings(values)
+    if api_key:
+        credentials_store_key(validated["engine"], api_key)
+    if image_api_key and validated["image_provider"] == "custom":
+        credentials_store_key("image_openai", image_api_key)
+    saved_glossary = write_private_text(glossary_path(), normalized_glossary)
+    saved_settings = save_settings(validated)
+    output_fn(f"默认配置已保存：{saved_settings}")
+    output_fn(f"手工术语表已保存：{saved_glossary}（{glossary_count} 条）")
+    output_fn(f"凭据文件：{credentials_path()}（仅在输入新 Key 时更新）")
+    output_fn(
+        f"当前默认：{validated['engine']} / {validated['model'] or '引擎默认模型'}；"
+        f"{validated['mode']} / {validated['language']} / {validated['layout']} / {validated['scope']}"
+    )
+    return validated
+
+
 def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
@@ -1948,12 +2291,17 @@ def parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--sample-chapters", type=int, default=2)
     inspect_parser.add_argument("--json", action="store_true")
     configure_parser = sub.add_parser(
-        "configure", help="open a book-independent page for the default model provider"
+        "configure", help="configure book-independent defaults by local page or terminal"
     )
     configure_parser.add_argument(
         "--no-open",
         action="store_true",
         help="print the local URL without opening a browser",
+    )
+    configure_parser.add_argument(
+        "--terminal",
+        action="store_true",
+        help="configure interactively in this terminal (recommended on servers)",
     )
     configure_parser.add_argument("--timeout", type=int, default=900)
     plan_parser = sub.add_parser(
@@ -1991,9 +2339,17 @@ def main() -> int:
             )
             print_inspection(info, args.json)
         elif args.command == "configure":
-            if args.timeout < 10 or args.timeout > 3600:
-                raise ValueError("--timeout must be between 10 and 3600 seconds")
-            run_configuration_ui(args.no_open, args.timeout)
+            if args.terminal:
+                if not sys.stdin.isatty() or not sys.stdout.isatty():
+                    raise ValueError(
+                        "--terminal requires an interactive TTY; run this command "
+                        "directly in the server shell or console"
+                    )
+                run_terminal_configuration()
+            else:
+                if args.timeout < 10 or args.timeout > 3600:
+                    raise ValueError("--timeout must be between 10 and 3600 seconds")
+                run_configuration_ui(args.no_open, args.timeout)
         elif args.command == "verify":
             epub_path = Path(args.epub).expanduser().resolve()
             structure = verify_epub(epub_path)
