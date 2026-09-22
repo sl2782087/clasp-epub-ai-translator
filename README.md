@@ -12,7 +12,7 @@
 - Guided choices for Chinese-only/bilingual output, Simplified/Traditional Chinese, horizontal/vertical/preserved layout, translation style, context, sample/full scope, and optional Calibre checks.
 - A local-only configuration page for providers, API endpoints, model discovery, connection tests, defaults, and a reusable manual glossary.
 - Plaintext credentials stored separately from ordinary settings with restrictive file permissions where supported. Saved keys are never returned to the browser.
-- Optional image localization using a vision model, an image-edit model, and local CJK text rendering.
+- High-fidelity reviewed image localization: full inventory including covers, per-image method selection, clean-plate and typography review, explicit pixel protection, lossless optimization, and surgical EPUB repacking.
 - Structure validation plus a visible-text contamination gate that blocks model analysis, self-checks, and JSON/schema residue from being silently delivered.
 - Atomic final delivery: the source EPUB is never overwritten, and the visible output appears only after validation succeeds.
 - Resume identity includes the prompt, contamination detector, retry policy, source, and glossary fingerprints.
@@ -81,11 +81,19 @@ uv run --script scripts/epub_translate.py verify /path/to/output.epub
 
 Use `--help` for the complete interface. A two-chapter sample is the default; review it before paying for a full novel.
 
+### High-fidelity image localization
+
+Choose `--image-translation review` for deliverable image quality. After prose translation the wrapper creates a clearly named text-only intermediate plus an `image-review` directory containing all extracted images, contact sheets, `inventory.json`, and a required `decisions.json`.
+
+Codex then reviews every image, including the cover, and records `translate`, `keep`, or `uncertain`. Flat art, timetables, maps, covers, complex illustrations, and editable SVG text use different methods. Changed raster images require independent text, visual, and pixel checks; covers additionally require clean-background and typography-layer approval. The packer refuses unreviewed decisions or unchecked replacements, updates real extensions/MIME/references, and proves visible XHTML text, spine order, and untouched image bytes remain unchanged.
+
+The older endpoint-driven `auto` and `all` modes remain available for compatibility but are labeled experimental. They may be useful for disposable previews and are not the recommended path for publishable output.
+
 ## Configuration and data flow
 
 The configuration page is book-independent and uses no external web assets. By default, settings live under the platform configuration directory named `clasp-epub-ai-translator`. Provider keys are stored in a separate plaintext `credentials.json`, and the reusable terminology file is `glossary.txt`. Environment variables can override all three paths.
 
-Book text and, when enabled, images are sent to the provider selected by the user. The project does not operate a relay server or receive this content. Local providers can keep processing local, subject to their own configuration. See [PRIVACY.md](PRIVACY.md) for exact behavior.
+Book text is sent to the provider selected by the user. Reviewed image localization uses local deterministic tools by default; an image leaves the device only if the user authorizes a vision or generative-editing provider for a specific step. Experimental automatic image modes send candidate images to their configured endpoint. The project does not operate a relay server or receive this content. See [PRIVACY.md](PRIVACY.md) for exact behavior.
 
 ## Safety model
 

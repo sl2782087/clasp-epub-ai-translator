@@ -25,7 +25,7 @@ The values below are saved as defaults by the page. Explicit command-line option
 | Context | `session`, `window`, `none` | `session` |
 | Scope | `sample`, `full` | `sample` |
 | Saved manual glossary | `on`, `off` | `off` |
-| Image translation | `off`, `auto`, `all` | `off` |
+| Image translation | `off`, `review`, `auto`, `all` | `off` |
 | Image provider | `reuse`, `custom` | `reuse` |
 | Vision model | provider model id | empty; select from provider |
 | Image-edit model | provider model id | empty; select from provider |
@@ -48,7 +48,7 @@ The visual page shows whether the selected engine already has credentials. â€œèŽ
 
 The image section has its own model-list and connection-test controls. `reuse` uses the current `openai`, `qwen`, or `ollama` OpenAI-compatible endpoint and key. `custom` uses the separate image API Base and the `image_openai` entry in `credentials.json`; `EPUB_TRANSLATOR_IMAGE_API_KEY` takes precedence. A separately typed image key is used only for that request until the form is saved. The connection test lists models only and does not invoke vision or image generation.
 
-OpenAI-compatible providers, Qwen, Gemini, Claude, and Ollama expose model-list endpoints. Codex uses the wrapper's built-in quality mapping, Google free translation has a fixed engine, and DeepL has no model list; DeepL connection testing uses its read-only usage endpoint. Tests have a short timeout, bounded JSON responses, and refuse credential-carrying redirects. A provider may still count a list or usage request against rate limits even though no generation occurs.
+OpenAI-compatible providers, Qwen, Gemini, Claude, and Ollama expose model-list endpoints. Codex uses the CLI default or a manually entered model, Google free translation has a fixed engine, and DeepL has no model list; DeepL connection testing uses its read-only usage endpoint. Tests have a short timeout, bounded JSON responses, and refuse credential-carrying redirects. A provider may still count a list or usage request against rate limits even though no generation occurs.
 
 For a novel, prefer `balanced` first. Use `quality` after comparing the same sample. Economy mode is suitable for a rough draft.
 
@@ -78,16 +78,11 @@ Prompt, detector, and retry-policy versions are part of the work-directory confi
 
 ## Image localization
 
-Use `--image-translation auto` for ordinary books. It skips the cover by default, filters small decoration images locally, then asks the vision model whether each remaining candidate contains Japanese that needs translation. `all` removes the local decoration-size filter but still leaves images with no translatable text unchanged. `--image-limit 2` is the recommended first pass; use `0` only after reviewing the sample.
+Use `--image-translation review` for deliverable quality. The prose wrapper produces a clearly named text-only intermediate, then creates `image-review/inventory.json`, `decisions.json`, extracted originals, and contact sheets. The reviewed pass includes the cover, does not skip images solely by size, and requires a recorded decision for every candidate. Follow [image-workflow.md](image-workflow.md) to choose deterministic local edits, bounded repair, full-title cover typesetting, or SVG text editing; run semantic, visual, and pixel checks separately before packing.
 
-The pipeline is intentionally split:
+`auto` and `all` retain the older one-call convenience pipeline for compatibility. They use normalized model boxes, an OpenAI-compatible image-edit endpoint, local text rendering, and a simple pixel mask. These modes may be useful for disposable previews, but they cannot inspect clean plates, typography groups, text correctness, or every visual seam and are therefore experimental. `image_provider`, vision/edit models, quality, limit, and cover options apply only to those experimental modes.
 
-1. The vision model returns source text, Chinese translation, writing direction, and normalized bounding boxes. It must preserve route names, times, flight/train numbers, and other clue-bearing text.
-2. The image-edit model receives the source plus an alpha mask and removes only the old text while reconstructing lines and background.
-3. The wrapper resizes the model result back to the source dimensions, composites only the mask area, and writes Chinese locally with a discovered CJK font. Set `CLASP_EPUB_FONT` to an explicit `.ttf` or `.ttc` file when automatic discovery does not find one.
-4. Each result is cached by image bytes and relevant configuration. A failed selected image keeps its source bytes, writes `image-translation-report.json`, and prevents final EPUB creation.
-
-The localized resource is encoded as PNG and its OPF media type is updated even when the original member name has a `.jpg` or `.webp` suffix; EPUB links therefore remain stable while decoded pixels outside masks remain unchanged. Image translation occurs after `bbook_maker` and before the normal layout and EPUB verification steps. It requires an OpenAI-compatible `/chat/completions` endpoint for vision plus `/images/edits` for background reconstruction, and it can incur separate vision and image charges.
+Reviewed replacements are packed with real file extensions and matching OPF MIME types; affected XHTML/CSS references are rewritten while visible XHTML text, spine order, and untouched image bytes are verified unchanged. Run the normal structure/content verifier again after packing.
 
 ## Calibre
 

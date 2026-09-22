@@ -1,6 +1,6 @@
 {
   "name": "clasp-epub-ai-translator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Translate DRM-free EPUB text and optional images with configurable AI providers, safety checks, and structure-preserving output.",
   "author": {
     "name": "sl2782087",
@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "暗扣 AI 电子书翻译",
     "shortDescription": "Translate EPUB text and images with safety checks.",
-    "longDescription": "A guided Codex skill for translating DRM-free EPUB books into Chinese or bilingual editions while preserving structure, offering local configuration, terminology controls, optional image localization, resumable work, and content-safety validation.",
+    "longDescription": "A guided Codex skill for translating DRM-free EPUB books into Chinese or bilingual editions while preserving structure, with local configuration, terminology controls, reviewed high-fidelity image localization, resumable work, and content-safety validation.",
     "developerName": "sl2782087",
     "category": "Productivity",
     "capabilities": ["Local file read/write", "External model API requests", "Interactive local configuration"],

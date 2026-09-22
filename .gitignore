@@ -24,6 +24,12 @@ EPUB翻译/
 image-translation-cache/
 content-validation-report.json
 image-translation-report.json
+inventory.json
+decisions.json
+replacements.json
+epub-image-audit.json
+contact-*.png
+difference.png
 
 # IDE and local artifacts
 .idea/

@@ -93,7 +93,7 @@ TRANSLATION_CHOICES = {
     "glossary_default": {"on", "off"},
     "glossary_auto": {"on", "off"},
     "calibre": {"metadata", "azw3", "none"},
-    "image_translation": {"off", "auto", "all"},
+    "image_translation": {"off", "review", "auto", "all"},
     "image_provider": {"reuse", "custom"},
     "image_quality": {"low", "medium", "high"},
     "image_cover": {"on", "off"},
@@ -651,7 +651,7 @@ def validate_settings(form: dict[str, str]) -> dict:
     values["image_edit_model"] = form.get("image_edit_model", "").strip()[:200]
     if engine == "ollama" and not values["model"]:
         raise ValueError("Ollama requires a model name")
-    if values["image_translation"] != "off":
+    if values["image_translation"] in {"auto", "all"}:
         if not values["image_vision_model"] or not values["image_edit_model"]:
             raise ValueError("启用图片翻译时必须选择视觉 OCR 模型和图片编辑模型")
         if values["image_provider"] == "reuse" and engine not in {
@@ -705,8 +705,9 @@ def configuration_page(
         ],
         "image_translation": [
             ("off", "关闭（默认）"),
-            ("auto", "自动识别含文字图片"),
-            ("all", "检查全部候选图片"),
+            ("review", "高保真逐图审阅（推荐）"),
+            ("auto", "实验性一键自动（可能失真）"),
+            ("all", "实验性检查全部候选图"),
         ],
         "image_provider": [
             ("reuse", "复用当前 OpenAI 兼容接口"),
@@ -776,7 +777,9 @@ textarea{{min-height:230px;resize:vertical;font-family:ui-monospace,SFMono-Regul
 <div><label for="scope">翻译范围</label>{select('scope')}</div><div><label for="sample_chapters">样章数量</label><input id="sample_chapters" name="sample_chapters" type="number" min="1" max="20" value="{int(current.get('sample_chapters', 2))}"></div>
 <div><label for="glossary_auto">自动术语学习</label>{select('glossary_auto')}</div><div><label for="calibre">Calibre</label>{select('calibre')}</div>
 <h2 class="wide section">图片翻译默认值</h2>
-<div><label for="image_translation">图片翻译</label>{select('image_translation')}<div class="hint">默认关闭。自动模式会跳过封面和小型装饰图，再由视觉模型判断是否含需翻译文字。</div></div>
+<div><label for="image_translation">图片翻译</label>{select('image_translation')}<div class="hint">高保真模式会在正文翻译后提取全部图片（包括封面），生成联系表与决策清单，并等待逐图处理和验收；不会自动整图重绘。</div></div>
+<div></div>
+<div id="image_experimental" class="subpanel">
 <div><label for="image_provider">图片接口</label>{select('image_provider')}<div class="hint">复用要求当前翻译引擎为 OpenAI 兼容接口；也可单独保存图片接口。</div></div>
 <div><label for="image_quality">图片编辑质量</label>{select('image_quality')}</div><div><label for="image_limit">本次默认最多处理</label><input id="image_limit" name="image_limit" type="number" min="0" max="100" value="{int(current.get('image_limit', 2))}"><div class="hint">默认先处理 2 张样图；0 表示不限。</div></div>
 <div><label for="image_cover">封面</label>{select('image_cover')}</div><div></div>
@@ -787,7 +790,8 @@ textarea{{min-height:230px;resize:vertical;font-family:ui-monospace,SFMono-Regul
 <div><label for="image_vision_model">视觉 OCR / 翻译模型</label><input id="image_vision_model" name="image_vision_model" value="{image_vision_model}"><select id="image_vision_picker" aria-label="选择视觉模型" hidden></select></div>
 <div><label for="image_edit_model">去字补背景模型</label><input id="image_edit_model" name="image_edit_model" value="{image_edit_model}"><select id="image_edit_picker" aria-label="选择图片编辑模型" hidden></select></div>
 <div class="wide"><div class="connection-tools"><button id="image_fetch_models" class="secondary" type="button">获取图片接口模型</button><button id="image_test_api" class="secondary" type="button">测试图片接口</button><span class="hint">只拉取模型列表检查地址和鉴权，不生成图片、不产生图片调用。</span></div><div id="image_api_status" class="api-status" role="status" aria-live="polite"></div></div>
-<div class="wide hint">实际处理顺序：视觉模型识别并翻译 → 图片模型仅去字补背景 → 只合成文字蒙版区域 → 本地中文字体写入。中间结果按图片哈希缓存，失败会保留原图并停止；可用 CLASP_EPUB_FONT 指定字体。</div>
+<div class="wide hint">上方接口仅供实验性一键模式使用。推荐的高保真模式会按白底、表格、地图、封面、插画和 SVG 分别选方法，验收无字背景、独立文字层、保护区像素及最终排版后再回填 EPUB。</div>
+</div>
 <h2 class="wide section">手工术语表</h2>
 <div class="wide"><label for="glossary_default">翻译时使用</label>{select('glossary_default')}<div class="hint">临时指定其他术语表时，以临时文件为准。</div></div>
 <div class="wide"><label for="glossary_text">术语内容</label><textarea id="glossary_text" name="glossary_text" spellcheck="false" placeholder="# 人名与专有名词&#10;真壁 -> 真壁&#10;四千年のアリバイ回廊 → 四千年不在场证明回廊">{glossary}</textarea><div class="hint">每行一条：原文 -&gt; 译文。支持 →、空行、整行注释和行尾 # 注释；重复原词以后面的条目为准。</div></div>
@@ -797,6 +801,7 @@ const statuses={status_json};
 const engine=document.getElementById('engine'),key=document.getElementById('api_key'),keyStatus=document.getElementById('key_status');
 const model=document.getElementById('model'),modelPicker=document.getElementById('model_picker'),base=document.getElementById('api_base');
 const apiStatus=document.getElementById('api_status'),fetchModels=document.getElementById('fetch_models'),testApi=document.getElementById('test_api');
+const imageTranslation=document.getElementById('image_translation'),imageExperimental=document.getElementById('image_experimental');
 const imageProvider=document.getElementById('image_provider'),imageCustom=document.getElementById('image_custom');
 const imageBase=document.getElementById('image_api_base'),imageKey=document.getElementById('image_api_key');
 const imageVision=document.getElementById('image_vision_model'),imageVisionPicker=document.getElementById('image_vision_picker');
@@ -824,6 +829,7 @@ function updateEngine(){{keyStatus.textContent=statuses[engine.value]||'';key.di
 function showApi(message,kind){{apiStatus.textContent=message;apiStatus.className='api-status '+kind}}
 function showImageApi(message,kind){{imageStatus.textContent=message;imageStatus.className='api-status '+kind}}
 function updateImageProvider(){{imageCustom.hidden=imageProvider.value!=='custom';resetPicker(imageVision,imageVisionPicker);resetPicker(imageEdit,imageEditPicker);imageStatus.className='api-status';imageStatus.textContent=''}}
+function updateImageMode(){{imageExperimental.hidden=!['auto','all'].includes(imageTranslation.value)}}
 async function callApi(path){{
   fetchModels.disabled=true;testApi.disabled=true;showApi('正在连接…','busy');
   const body=new URLSearchParams({{token:document.querySelector('[name=token]').value,engine:engine.value,model:model.value,api_base:base.value,api_key:key.disabled?'':key.value}});
@@ -856,7 +862,9 @@ engine.addEventListener('change',updateEngine);base.addEventListener('input',res
 fetchModels.addEventListener('click',()=>callApi('/api/models'));testApi.addEventListener('click',()=>callApi('/api/test'));updateEngine();
 bindPicker(imageVision,imageVisionPicker);bindPicker(imageEdit,imageEditPicker);
 imageProvider.addEventListener('change',updateImageProvider);imageBase.addEventListener('input',()=>{{resetPicker(imageVision,imageVisionPicker);resetPicker(imageEdit,imageEditPicker)}});
+imageTranslation.addEventListener('change',updateImageMode);
 imageFetch.addEventListener('click',()=>callImageApi('/api/image/models'));imageTest.addEventListener('click',()=>callImageApi('/api/image/test'));updateImageProvider();
+updateImageMode();
 </script>
 </body></html>"""
 
@@ -1368,6 +1376,8 @@ def planned_paths(
         label = "繁中" if args.mode == "chinese" else "日繁双语"
     if args.scope == "sample":
         label += "试译"
+    if args.image_translation == "review":
+        label += "文字版"
     final = out_dir / f"{source.stem}（{label}）.epub"
     return out_dir, work_dir, work_source, final
 
@@ -1397,6 +1407,11 @@ def print_plan(
     print(f"Manual glossary: {args.glossary or 'off'}")
     if args.image_translation == "off":
         print("Image translation: off")
+    elif args.image_translation == "review":
+        print(
+            "Image translation: high-fidelity reviewed second stage; all images, "
+            "including the cover, will be inventoried after prose translation"
+        )
     else:
         image_base, _ = resolve_image_connection(args)
         print(
@@ -1652,6 +1667,38 @@ def run_calibre(path: Path, action: str) -> list[str]:
     return [f"AZW3: {azw3}"]
 
 
+def prepare_image_review(epub: Path, work_dir: Path, resume: bool) -> dict:
+    review_dir = work_dir / "image-review"
+    inventory = review_dir / "inventory.json"
+    decisions = review_dir / "decisions.json"
+    if inventory.is_file() and decisions.is_file():
+        if not resume:
+            raise ValueError(
+                f"图片审阅目录已存在；确认仍对应当前输出后使用 --resume：{review_dir}"
+            )
+    else:
+        script = Path(__file__).with_name("epub_images.py")
+        completed = subprocess.run(
+            [sys.executable, str(script), "inspect", str(epub), "--work", str(review_dir)],
+            check=False,
+        )
+        if completed.returncode:
+            raise ValueError("无法生成图片审阅清单")
+    payload = json.loads(inventory.read_text(encoding="utf-8"))
+    return {
+        "status": "review_required",
+        "work_directory": str(review_dir),
+        "inventory": str(inventory),
+        "decisions": str(decisions),
+        "contact_sheets": sorted(str(path) for path in review_dir.glob("contact-*.png")),
+        "image_count": len(payload.get("images", [])),
+        "next": (
+            "review every candidate, localize approved regions, run pixel/visual audits, "
+            "then pack replacements with scripts/epub_images.py"
+        ),
+    }
+
+
 def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     command, work_dir, work_source, final = print_plan(args, info)
     if not args.yes:
@@ -1679,7 +1726,7 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     if not generated.is_file():
         raise ValueError(f"Expected translated EPUB was not created: {generated}")
     layout_source = generated
-    if args.image_translation != "off":
+    if args.image_translation in {"auto", "all"}:
         from epub_image_translate import translate_epub_images
 
         image_base, image_key = resolve_image_connection(args)
@@ -1725,7 +1772,13 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     )
     for line in run_calibre(final, args.calibre):
         print(f"Calibre: {line}")
-    print(f"Completed output: {final}")
+    if args.image_translation == "review":
+        review = prepare_image_review(final, work_dir, args.resume)
+        print(f"Image review: {json.dumps(review, ensure_ascii=False)}")
+        print(f"Prose-translated intermediate: {final}")
+        print("Image localization is pending review; do not present this as the completed image-localized EPUB.")
+    else:
+        print(f"Completed output: {final}")
 
 
 def add_translation_args(parser: argparse.ArgumentParser) -> None:
@@ -1795,7 +1848,7 @@ def add_translation_args(parser: argparse.ArgumentParser) -> None:
         "--calibre", choices=("metadata", "azw3", "none"), default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "--image-translation", choices=("off", "auto", "all"), default=argparse.SUPPRESS
+        "--image-translation", choices=("off", "review", "auto", "all"), default=argparse.SUPPRESS
     )
     parser.add_argument(
         "--image-provider", choices=("reuse", "custom"), default=argparse.SUPPRESS
