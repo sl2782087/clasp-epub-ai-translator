@@ -19,6 +19,8 @@ View every contact sheet, then inspect every possible text-bearing image at orig
 
 Keep images already in the target language, images with no language text, and universal formulas/symbols. Japanese kanji do not prove an image is already Chinese: check kana and Japanese-specific words. Use the generated context to keep names consistent. For every `translate` decision, record full `recognized_text`, full `translation_text`, all source strings hit in `matched_terms`, and `terminology_review`. Use `passed` or `checked` when terms match; use `not_applicable` only when none match. Do not alter prose or metadata while localizing images.
 
+When redoing damaged localized images and the user supplies the original-language EPUB, inspect both books. Use the original-language images as editing sources and the current translated EPUB as the packing base. Record the source-to-target member mapping explicitly; filenames and extensions may differ. Keep the translated book's context and terminology checks, and honor excluded images such as covers or timetables. Do not continue painting over damaged prior translations.
+
 ## 2. Choose a method by background
 
 | Actual content | Preferred method |
@@ -38,6 +40,10 @@ Before editing, record source text, translation, integer source-pixel box, statu
 
 The erase mask must include antialiasing, outline, shadow, glow, and JPEG color bleed while excluding adjacent content. The erase area and new-text layout box need not be identical. Preserve dimensions, orientation, and crop.
 
+For paper texture, sample a clean part of the same image with similar brightness and texture density. Keep the sampling rectangle inside the image so crop padding cannot introduce black edges. Check cloned texture for repetition and seams; choose another sample or repair method when gradients or boundaries do not match. Use flat fills only on genuinely flat backgrounds, not textured paper.
+
+Before placing new text, inspect the erased area for faint scan/JPEG halos as well as dark strokes. For slanted labels, use small per-character regions or a shaped mask to remove full glyphs without erasing intervening dots, numbers, or routes. Do not blur remnants away or expand a large white rectangle across neighboring content.
+
 ## 4. Review three layers
 
 1. **Semantic coverage:** check every source/translation pair, proper noun, negation, date, unit, number, and any retained original text.
@@ -48,7 +54,9 @@ For covers, separately approve the clean plate, independent text layer, final co
 
 ## 5. Optimize and pack
 
-Keep a lossless master. Use `optimize_png.py` only after review; it accepts a candidate only if decoded RGBA pixels are identical. Do not repeatedly recompress JPEG or resize by default. More guidance is in [image-compression.md](image-compression.md).
+Keep a lossless master. Use `optimize_png.py` only after review; it accepts a candidate only if decoded RGBA pixels are identical. Compare the input and final EPUB sizes, not just optimized PNG versus master sizes. If edited scan maps converted from JPEG to PNG cause substantial growth, evaluate a few high-quality JPEG delivery candidates unless the user requires lossless output. Select format and quality per image, preserve dimensions, and inspect compressed small text and lines. Follow [image-compression.md](image-compression.md) for selection and stopping conditions.
+
+After compression, set each translated decision's `output` and the replacements entry to the selected delivery file. Keep the lossless master, source-image mapping, pixel audit, and compression/visual review records in the work directory. `pixel_audit` refers to original-to-lossless-master verification; `visual_review` must also cover the final delivery image. Do not describe a JPEG as pixel-identical to its master or bypass the existing terminology and review gates.
 
 Build a replacements object containing only changed members:
 
@@ -67,4 +75,4 @@ uv run --script scripts/epub_images.py pack /absolute/prose-translated.epub \
 uv run --script scripts/epub_translate.py verify /absolute/book-图片已翻译.epub
 ```
 
-Packing verifies the context checksum, recomputes every terminology hit from `recognized_text`, requires each hit in `matched_terms`, and requires its fixed rendering verbatim in `translation_text`. It rejects context drift, missing terms, unknown matched terms, or an unreviewed terminology decision. It then preserves unmodified resources byte-for-byte, changes extensions and MIME types when formats change, rewrites only affected resource references, verifies XHTML text and spine stability, and refuses overwrite. Report modified/kept/uncertain counts, terminology validation, method per image, visual and pixel review status, source/output size, lossless/lossy status, resolution changes, and any incomplete candidates. Never describe a partial result as fully image-translated.
+Packing verifies the context checksum, recomputes every terminology hit from `recognized_text`, requires each hit in `matched_terms`, and requires its fixed rendering verbatim in `translation_text`. It rejects context drift, missing terms, unknown matched terms, or an unreviewed terminology decision. It then preserves unmodified resources byte-for-byte, changes extensions and MIME types when formats change, rewrites only affected resource references, verifies XHTML text and spine stability, and refuses overwrite. Report modified/kept/uncertain counts, terminology validation, method per image, visual and pixel review status, input/final EPUB size and change (separately label any master-to-delivery savings), lossless/lossy status, resolution changes, and any incomplete candidates. Never describe a partial result as fully image-translated.

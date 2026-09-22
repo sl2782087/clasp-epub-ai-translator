@@ -74,6 +74,8 @@ uv run --script scripts/bootstrap.py install
 
 The install command currently pins [`sl2782087/bilingual_book_maker@4e4e20c`](https://github.com/sl2782087/bilingual_book_maker/commit/4e4e20cead3431e4880b505795a19adf1537ca1a). That fork contains the translation-output contamination fix submitted upstream as [bilingual_book_maker#575](https://github.com/yihong0618/bilingual_book_maker/pull/575). The dependency will return to an upstream release after the fix is merged and published.
 
+The reviewed image workflow also checks delivery size against the input EPUB. It retains lossless masters, protects map markers during local typesetting, and can select high-quality JPEG for edited textured maps after checking small text and lines; dense diagrams can remain lossless. It preserves resolution by default and reports any lossy delivery.
+
 ## Workflow
 
 The skill normally drives these commands for you:
