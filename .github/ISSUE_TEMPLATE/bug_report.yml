@@ -1,0 +1,39 @@
+name: Bug report
+description: Report reproducible behavior using synthetic or redistributable data
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not upload API keys, purchased books, private provider responses, or copyrighted excerpts. Use a minimal synthetic EPUB when possible."
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and Python version
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Redact secrets and private or copyrighted content.
+    validations:
+      required: true

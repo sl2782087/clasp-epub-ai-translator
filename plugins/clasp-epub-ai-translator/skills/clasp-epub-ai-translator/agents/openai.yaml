@@ -1,0 +1,4 @@
+interface:
+  display_name: "暗扣 AI 电子书翻译"
+  short_description: "安全翻译 EPUB 正文与图片并保留书籍结构"
+  default_prompt: "Use $clasp-epub-ai-translator to inspect, configure, plan, translate, and verify a DRM-free EPUB without overwriting the source."

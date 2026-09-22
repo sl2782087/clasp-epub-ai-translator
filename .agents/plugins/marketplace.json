@@ -1,0 +1,20 @@
+{
+  "name": "clasp-epub-ai-translator",
+  "interface": {
+    "displayName": "暗扣 AI 电子书翻译"
+  },
+  "plugins": [
+    {
+      "name": "clasp-epub-ai-translator",
+      "source": {
+        "source": "local",
+        "path": "./plugins/clasp-epub-ai-translator"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

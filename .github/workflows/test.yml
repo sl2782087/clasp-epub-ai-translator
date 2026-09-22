@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Compile
+        run: uv run --with "Pillow>=10,<13" python -m compileall -q plugins/clasp-epub-ai-translator/skills/clasp-epub-ai-translator/scripts
+      - name: Test
+        run: uv run --with "Pillow>=10,<13" python -m unittest discover -s plugins/clasp-epub-ai-translator/skills/clasp-epub-ai-translator/tests -p "test_*.py" -v
+      - name: Validate JSON
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          for path in [
+              Path(".agents/plugins/marketplace.json"),
+              Path("plugins/clasp-epub-ai-translator/plugin.json"),
+              Path("plugins/clasp-epub-ai-translator/.codex-plugin/plugin.json"),
+          ]:
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"valid: {path}")

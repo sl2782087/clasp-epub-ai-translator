@@ -1,0 +1,32 @@
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Secrets and local configuration
+credentials.json
+settings.json
+provider.json
+glossary.txt
+.env
+.env.*
+
+# Books, generated output, and resumable work
+*.epub
+*.azw3
+EPUB翻译/
+.*-work/
+image-translation-cache/
+content-validation-report.json
+image-translation-report.json
+
+# IDE and local artifacts
+.idea/
+.vscode/
+*.log
+*.tmp
