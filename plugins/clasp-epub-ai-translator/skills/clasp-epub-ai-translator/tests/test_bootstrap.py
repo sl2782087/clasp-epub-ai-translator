@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+import os
 from pathlib import Path
 from unittest import mock
 
@@ -29,7 +30,9 @@ class BootstrapTests(unittest.TestCase):
             run.call_args_list[0].args[0],
             ["/usr/bin/uv", "tool", "install", "--force", bootstrap.BBOOK_MAKER_SPEC],
         )
-        self.assertEqual(run.call_args_list[2].args[0], ["/tmp/uv-bin/bbook_maker", "--help"])
+        executable_name = "bbook_maker.exe" if os.name == "nt" else "bbook_maker"
+        expected = str(Path("/tmp/uv-bin") / executable_name)
+        self.assertEqual(run.call_args_list[2].args[0], [expected, "--help"])
 
 
 if __name__ == "__main__":

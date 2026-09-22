@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
-from PIL import Image
+from PIL import Image, ImageFont
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -47,7 +47,8 @@ class ImageTranslationTests(unittest.TestCase):
 
     def test_render_is_clipped_to_region(self) -> None:
         source = Image.new("RGBA", (300, 200), (245, 245, 240, 255))
-        result = image_translate.render_translations(source, [REGION])
+        with mock.patch.object(image_translate, "_font", side_effect=lambda _size: ImageFont.load_default()):
+            result = image_translate.render_translations(source, [REGION])
         self.assertEqual(result.getpixel((0, 0)), source.getpixel((0, 0)))
         self.assertEqual(result.getpixel((299, 199)), source.getpixel((299, 199)))
         self.assertNotEqual(result.crop((90, 60, 210, 140)).tobytes(), source.crop((90, 60, 210, 140)).tobytes())
@@ -78,7 +79,7 @@ class ImageTranslationTests(unittest.TestCase):
 
             with mock.patch.object(image_translate, "analyze_image", return_value=[REGION]), mock.patch.object(
                 image_translate, "inpaint", side_effect=fake_inpaint
-            ):
+            ), mock.patch.object(image_translate, "_font", side_effect=lambda _size: ImageFont.load_default()):
                 report = image_translate.translate_epub_images(
                     source, destination, work, mode="auto", api_base="https://example.test/v1", api_key="test-key",
                     vision_model="vision", edit_model="image", quality="low", limit=2,
