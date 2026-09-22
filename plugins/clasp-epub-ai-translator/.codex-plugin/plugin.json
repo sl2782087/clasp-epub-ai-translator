@@ -1,6 +1,6 @@
 {
   "name": "clasp-epub-ai-translator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Translate DRM-free EPUB text and optional images with configurable AI providers, safety checks, and structure-preserving output.",
   "author": {
     "name": "sl2782087",

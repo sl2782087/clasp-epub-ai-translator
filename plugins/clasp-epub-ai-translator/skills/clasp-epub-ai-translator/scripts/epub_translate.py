@@ -39,6 +39,7 @@ from translation_guard import (
 
 APP_NAME = "clasp-epub-ai-translator"
 LEGACY_APP_NAME = "epub-ai-translator"
+IMAGE_CONTEXT_VERSION = 1
 CALIBRE_DIRS = tuple(
     Path(value)
     for value in (
@@ -1297,6 +1298,7 @@ def make_config(args: argparse.Namespace, info: EpubInfo) -> dict:
         "prompt_policy_version": PROMPT_POLICY_VERSION,
         "contamination_detector_version": CONTAMINATION_DETECTOR_VERSION,
         "retranslation_policy_version": RETRANSLATION_POLICY_VERSION,
+        "image_context_version": IMAGE_CONTEXT_VERSION,
     }
 
 
@@ -1667,19 +1669,39 @@ def run_calibre(path: Path, action: str) -> list[str]:
     return [f"AZW3: {azw3}"]
 
 
-def prepare_image_review(epub: Path, work_dir: Path, resume: bool) -> dict:
+def prepare_image_review(
+    epub: Path,
+    work_dir: Path,
+    resume: bool,
+    glossary: Path | None = None,
+    handoff: Path | None = None,
+) -> dict:
     review_dir = work_dir / "image-review"
     inventory = review_dir / "inventory.json"
     decisions = review_dir / "decisions.json"
-    if inventory.is_file() and decisions.is_file():
+    context = review_dir / "image-context.json"
+    context_markdown = review_dir / "image-context.md"
+    if all(path.is_file() for path in (inventory, decisions, context, context_markdown)):
         if not resume:
             raise ValueError(
                 f"图片审阅目录已存在；确认仍对应当前输出后使用 --resume：{review_dir}"
             )
     else:
         script = Path(__file__).with_name("epub_images.py")
+        command = [
+            sys.executable,
+            str(script),
+            "inspect",
+            str(epub),
+            "--work",
+            str(review_dir),
+        ]
+        if glossary:
+            command.extend(["--glossary", str(glossary)])
+        if handoff and handoff.is_file():
+            command.extend(["--handoff", str(handoff)])
         completed = subprocess.run(
-            [sys.executable, str(script), "inspect", str(epub), "--work", str(review_dir)],
+            command,
             check=False,
         )
         if completed.returncode:
@@ -1690,6 +1712,8 @@ def prepare_image_review(epub: Path, work_dir: Path, resume: bool) -> dict:
         "work_directory": str(review_dir),
         "inventory": str(inventory),
         "decisions": str(decisions),
+        "context": str(context),
+        "context_markdown": str(context_markdown),
         "contact_sheets": sorted(str(path) for path in review_dir.glob("contact-*.png")),
         "image_count": len(payload.get("images", [])),
         "next": (
@@ -1773,7 +1797,13 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     for line in run_calibre(final, args.calibre):
         print(f"Calibre: {line}")
     if args.image_translation == "review":
-        review = prepare_image_review(final, work_dir, args.resume)
+        review = prepare_image_review(
+            final,
+            work_dir,
+            args.resume,
+            Path(args.glossary).expanduser().resolve() if args.glossary else None,
+            work_source.with_name(f"{work_source.stem}_handoff.md"),
+        )
         print(f"Image review: {json.dumps(review, ensure_ascii=False)}")
         print(f"Prose-translated intermediate: {final}")
         print("Image localization is pending review; do not present this as the completed image-localized EPUB.")

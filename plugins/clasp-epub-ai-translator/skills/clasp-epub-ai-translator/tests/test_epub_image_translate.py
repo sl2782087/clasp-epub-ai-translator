@@ -65,7 +65,8 @@ class ImageTranslationTests(unittest.TestCase):
             members = {
                 "mimetype": b"application/epub+zip",
                 "META-INF/container.xml": b'''<?xml version="1.0"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/package.opf" media-type="application/oebps-package+xml"/></rootfiles></container>''',
-                "EPUB/package.opf": b'''<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata><meta name="cover" content="cover"/></metadata><manifest><item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/><item id="map" href="map.jpg" media-type="image/jpeg"/></manifest><spine/></package>''',
+                "EPUB/package.opf": b'''<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata><meta name="cover" content="cover"/></metadata><manifest><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/><item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/><item id="map" href="map.jpg" media-type="image/jpeg"/></manifest><spine><itemref idref="chapter"/></spine></package>''',
+                "EPUB/chapter.xhtml": """<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><body><p>真壁正在查看地图。</p><figure><img src="map.jpg"/></figure></body></html>""".encode(),
                 "EPUB/cover.png": cover,
                 "EPUB/map.jpg": map_buffer.getvalue(),
             }
@@ -77,7 +78,7 @@ class ImageTranslationTests(unittest.TestCase):
             def fake_inpaint(image, mask, *_args, **_kwargs):
                 return image.copy()
 
-            with mock.patch.object(image_translate, "analyze_image", return_value=[REGION]), mock.patch.object(
+            with mock.patch.object(image_translate, "analyze_image", return_value=[REGION]) as analyze_mock, mock.patch.object(
                 image_translate, "inpaint", side_effect=fake_inpaint
             ), mock.patch.object(image_translate, "_font", side_effect=lambda _size: ImageFont.load_default()):
                 report = image_translate.translate_epub_images(
@@ -86,6 +87,7 @@ class ImageTranslationTests(unittest.TestCase):
                     include_cover=False, language="zh-hans",
                 )
             self.assertEqual(len(report["translated"]), 1)
+            self.assertIn("真壁正在查看地图", analyze_mock.call_args.args[-1])
             self.assertTrue(any(item["reason"] == "cover" for item in report["skipped"]))
             with zipfile.ZipFile(destination) as zf:
                 self.assertEqual(zf.read("EPUB/map.jpg")[:8], b"\x89PNG\r\n\x1a\n")

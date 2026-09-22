@@ -4,6 +4,21 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-22
+
+### Added
+
+- Image-review context artifacts combining explicit and embedded glossaries, learned handoff renderings, book metadata, and bounded prose near each image.
+- Explicit terminology precedence and conflict reporting.
+- Pack-time enforcement that OCR-detected glossary terms are declared, reviewed, and rendered exactly in localized image text.
+- Context checksum validation so edited or mismatched terminology cannot be packed silently.
+- Bounded nearby prose context for the experimental automatic vision path.
+
+### Changed
+
+- Reviewed image decisions now record recognized text, translated text, matched terms, and terminology-review status.
+- Image-context policy version now participates in resumable-work identity.
+
 ## [0.2.0] - 2026-09-22
 
 ### Changed
@@ -31,6 +46,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 - EPUB structure verification, visible-text contamination detection, atomic delivery, and versioned resume safety policies.
 - Pinned temporary `bilingual_book_maker` fork containing the fix proposed in upstream PR #575.
 
-[Unreleased]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sl2782087/clasp-epub-ai-translator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sl2782087/clasp-epub-ai-translator/releases/tag/v0.1.0
