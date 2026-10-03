@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -63,6 +64,48 @@ def write_epub(
 
 
 class TranslationGuardTests(unittest.TestCase):
+    def test_prompt_change_does_not_reuse_older_translation_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_name:
+            source = write_epub(
+                Path(temp_name) / "source.epub", '<p id="anchor">自作文本</p>'
+            )
+            args = epub_translate.parser().parse_args(
+                ["plan", str(source), "--provider", "custom", "--engine", "openai",
+                 "--model", "fixture-model", "--output-dir", temp_name]
+            )
+            with mock.patch.object(
+                epub_translate, "load_settings", return_value=epub_translate.DEFAULT_SETTINGS
+            ):
+                epub_translate.apply_translation_defaults(args)
+            info = epub_translate.inspect_epub(source)
+            current_work = epub_translate.planned_paths(args, info)[1]
+            with mock.patch.object(
+                epub_translate, "PROMPT_POLICY_VERSION", "2026-09-22.1"
+            ):
+                previous_work = epub_translate.planned_paths(args, info)[1]
+            self.assertNotEqual(current_work, previous_work)
+
+    def test_translation_prompt_keeps_book_markers_and_placeholders_in_both_modes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_name:
+            source = '<p id="a"><ruby>同字<rt>よみ</rt></ruby>{not_an_instruction}</p>'
+            for mode in ["chinese", "bilingual"]:
+                args = epub_translate.parser().parse_args(
+                    ["plan", "fixture.epub", "--mode", mode,
+                     "--provider", "custom", "--engine", "openai"]
+                )
+                with mock.patch.object(
+                    epub_translate, "load_settings",
+                    return_value=epub_translate.DEFAULT_SETTINGS,
+                ):
+                    epub_translate.apply_translation_defaults(args)
+                output = Path(temp_name) / (mode + ".json")
+                epub_translate.build_prompt(output, args)
+                prompt = json.loads(output.read_text(encoding="utf-8"))
+                self.assertTrue(
+                    prompt["user"].format(language="Chinese", text=source).endswith(source)
+                )
+                self.assertEqual(set(prompt), {"system", "style", "user"})
+
     def test_known_residue_fails_with_member_and_anchor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_name:
             path = write_epub(

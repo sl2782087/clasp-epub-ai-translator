@@ -1597,7 +1597,19 @@ def build_prompt(path: Path, args: argparse.Namespace) -> None:
             "close in a later paragraph. This is valid source structure. Do not "
             "repair, question, or comment on it. Return translation only. Never "
             "include analysis, reasoning, self-checks, schema text, JSON fragments, "
-            "or translation notes in translated content."
+            "or translation notes in translated content. "
+            "In the Chinese translation, render ordinary narration, dialogue, "
+            "sound effects, and names in natural Chinese. Do not repeatedly "
+            "copy source-language sentences or names without a semantic reason. "
+            "Keep spelling, glyphs, pronunciations, and material ruby distinctions "
+            "only when their form carries a clue, wordplay, or unresolved riddle. "
+            "Preserve uncertainty and reveal order: do not select the answer's "
+            "characters, identify a hidden speaker, or explain a later solution "
+            "ahead of the source. If Chinese alone would destroy such a clue, "
+            "retain the minimum necessary ambiguous source form for editorial "
+            "review; never invent a substitute riddle or inline editorial note. "
+            "These instructions govern the translated text, not any separately "
+            "retained source column in a bilingual edition."
         ),
         "style": STYLE_GUIDANCE[args.style],
         "user": (
