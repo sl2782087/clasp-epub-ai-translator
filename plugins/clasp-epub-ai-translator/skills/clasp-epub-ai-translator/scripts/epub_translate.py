@@ -31,6 +31,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 import xml.etree.ElementTree as ET
 
+from review_export import REFERENCE_CONTEXT_VERSION, require_engine, read_handoff, publish_handoff
+
 from translation_guard import (
     CONTAMINATION_DETECTOR_VERSION,
     PROMPT_POLICY_VERSION,
@@ -1650,6 +1652,7 @@ def make_config(args: argparse.Namespace, info: EpubInfo) -> dict:
         "image_quality": args.image_quality,
         "image_limit": args.image_limit,
         "image_cover": args.image_cover,
+        "reference_context_version": REFERENCE_CONTEXT_VERSION,
         "prompt_policy_version": PROMPT_POLICY_VERSION,
         "contamination_detector_version": CONTAMINATION_DETECTOR_VERSION,
         "retranslation_policy_version": RETRANSLATION_POLICY_VERSION,
@@ -2084,6 +2087,9 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
         raise ValueError(
             "Run requires --yes after the user confirms this concrete plan"
         )
+    require_engine(command[0])
+    if final.with_suffix(".review.json").exists():
+        raise ValueError("Review handoff output already exists")
     final.parent.mkdir(parents=True, exist_ok=True)
     if final.exists():
         raise ValueError(f"Refusing to overwrite existing output: {final}")
@@ -2104,6 +2110,7 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     generated = work_source.with_name(work_source.stem + "_bilingual.epub")
     if not generated.is_file():
         raise ValueError(f"Expected translated EPUB was not created: {generated}")
+    review_handoff = read_handoff(work_source, generated)
     layout_source = generated
     if args.image_translation in {"auto", "all"}:
         from epub_image_translate import translate_epub_images
@@ -2143,6 +2150,8 @@ def execute_run(args: argparse.Namespace, info: EpubInfo) -> None:
     layout_result, verification, content_validation, content_report = (
         finalize_epub_delivery(layout_source, final, work_dir, args.layout)
     )
+    review_path = publish_handoff(review_handoff, final)
+    print(f"Review handoff: {review_path}")
     print(f"Layout post-processing: {json.dumps(layout_result, ensure_ascii=False)}")
     print(f"EPUB verification: OK ({verification['xml_files']} XML-family files)")
     print(

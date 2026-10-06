@@ -71,7 +71,7 @@ uv run --script scripts/bootstrap.py check
 uv run --script scripts/bootstrap.py install
 ```
 
-目前安装脚本固定使用 [`sl2782087/bilingual_book_maker@4e4e20c`](https://github.com/sl2782087/bilingual_book_maker/commit/4e4e20cead3431e4880b505795a19adf1537ca1a)。这个 fork 包含译文混入模型分析内容的安全修复，已通过 [bilingual_book_maker#575](https://github.com/yihong0618/bilingual_book_maker/pull/575) 提交上游。上游合并并发布后，项目会切回正式上游版本。
+目前安装脚本固定使用 [`sl2782087/bilingual_book_maker@c3c6b96`](https://github.com/sl2782087/bilingual_book_maker/commit/c3c6b967f7be8e1cc5ba1f85a14093e793efe292)。该版本新增 EPUB ruby/脚注上下文与版本化校对交接，并保留译文混入模型分析内容的安全修复；后者已通过 [bilingual_book_maker#575](https://github.com/yihong0618/bilingual_book_maker/pull/575) 提交上游。待上游版本同时支持输出保护及封装所需的上下文/交接协议后，再切回正式上游版本。升级须等所有正在运行的翻译结束；旧断点继续使用原安装。
 
 人工验收图片流程也会比较输入与成品 EPUB 的体积：保留无损母版，局部排字时保护地图标记；带纸纹的已修改地图可在小字、细线验收后采用高质量 JPEG，密集示意图可继续保留无损。默认不降分辨率，并明确说明有损处理。
 

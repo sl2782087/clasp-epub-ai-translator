@@ -67,6 +67,14 @@ The deterministic wrapper is `scripts/epub_translate.py`. It uses the isolated `
 
 8. Report the final output path and verification result. In a Hermes gateway response, put the final absolute EPUB path on its own line and append `[[as_document]]` so the gateway can send it as a document. Offer Calibre preview only after the relevant EPUB exists; launching a GUI or adding to the Calibre library remains an explicit user choice.
 
+## Review handoff
+
+The pinned engine supplies ruby readings and resolved local footnotes as auxiliary context on supported LLM routes (Codex, OpenAI-compatible, Claude, Gemini). Fixed machine-translation routes do not consume this context; the handoff records support explicitly. Reference data never becomes additional output paragraphs. Missing, ambiguous or truncated references remain in the external report for editorial review.
+
+Each completed prose EPUB has an adjacent `.review.json` with source/target hashes, stable source-unit IDs, original text, translations and reference data. Keep it outside the EPUB and pass it to the proofreading workflow. It contains book text; do not commit or upload it without the user’s authorization. A sample covers only translated units. Any later manual/image-stage repack must establish a new reviewed snapshot instead of claiming the old target hash still matches. Read [references/review-handoff.md](references/review-handoff.md) before a multi-model proofreading handoff.
+
+Do not upgrade a skill or translation engine while another session is using it. Develop/test separately and defer installation until active runs finish. Before translation, the wrapper checks the engine protocol without calling a model; older checkpoints must continue with their original installation.
+
 ## Chinese prose and source-language clues
 
 Before translating prose, read [references/chinese-publication.md](references/chinese-publication.md). Apply its Chinese-first rules to the translated column; retain the source column when the user chooses bilingual output. Ordinary dialogue, sound effects, and names need readable Chinese, while spelling, pronunciation, ruby distinctions, and unresolved riddle forms may need minimal original material to keep clues observable without revealing answers early.
@@ -93,3 +101,5 @@ For engine mappings, detailed options, and Calibre behavior, read [references/op
 ## Runtime bundle
 
 Hermes GitHub installs must include every file below. Use the wrapper in [scripts/epub_translate.py](scripts/epub_translate.py), environment bootstrap in [scripts/bootstrap.py](scripts/bootstrap.py), and translation safety rules in [scripts/translation_guard.py](scripts/translation_guard.py). The reviewed image stage uses [scripts/epub_images.py](scripts/epub_images.py), [scripts/epub_image_translate.py](scripts/epub_image_translate.py), [scripts/audit_regions.py](scripts/audit_regions.py), and [scripts/optimize_png.py](scripts/optimize_png.py). Do not substitute unreferenced copies of these files.
+
+The review handoff helper is [scripts/review_export.py](scripts/review_export.py).
