@@ -1712,6 +1712,7 @@ def command_for(
             raise ValueError("Could not identify sample chapter documents")
         command.extend(["--only_filelist", ",".join(info.sample_documents)])
     command.extend(["--plan-classify", "all"])
+    command.append("--no_disclosure")
     if args.resume:
         command.append("--resume")
     return command

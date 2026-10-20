@@ -76,6 +76,7 @@ Review the engine output before calling it a finished Chinese edition. Inventory
 ## Safety and correctness
 
 - Refuse encrypted EPUBs; do not remove DRM.
+- Generated EPUBs contain no technical metadata, model names, tool names, or endpoints. The wrapper always passes `--no_disclosure` to suppress bbook_maker's translation credit and metadata manifest entry.
 - Prefer the provider's normal environment or existing Codex login when already configured. Keys entered in the local page are stored per provider in a separate `credentials.json` beside `settings.json`, with user-only file permissions where the OS supports them. Treat this file as plaintext secret material when copying or syncing it. Never put keys in ordinary preferences, commands, prompts, logs, or skill files.
 - Model discovery and connection tests use a newly typed key for that request, otherwise the environment or saved credentials. Never return a saved key to the browser. Use provider-native read-only/list endpoints, a short timeout, bounded responses, and no credential-carrying redirects. Connection testing must not invoke model generation.
 - The reusable manual glossary lives beside settings as `glossary.txt`. A one-off `--glossary /path/to/terms.txt` takes precedence; use `--default-glossary off` to skip the saved glossary for one run. Include glossary content in the resumable-work fingerprint so edited terminology cannot silently reuse stale work.
