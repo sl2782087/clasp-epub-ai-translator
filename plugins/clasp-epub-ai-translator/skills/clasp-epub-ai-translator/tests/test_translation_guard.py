@@ -240,6 +240,29 @@ Analysis: I need to check the translation field.</pre>"""
                 self.assertIn(b'href="chapter.xhtml#anchor"', chapter)
                 self.assertIn("EPUB/nav.xhtml", zf.namelist())
 
+    def test_command_always_includes_no_disclosure_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_name:
+            root = Path(temp_name)
+            source = write_epub(root / "source.epub", '<p id="anchor">測試文本</p>')
+            args = epub_translate.parser().parse_args(
+                ["plan", str(source), "--provider", "custom", "--engine", "openai",
+                 "--model", "test-model", "--output-dir", str(root), "--scope", "full"]
+            )
+            with mock.patch.object(
+                epub_translate, "load_settings", return_value=epub_translate.DEFAULT_SETTINGS
+            ):
+                epub_translate.apply_translation_defaults(args)
+            info = epub_translate.inspect_epub(source)
+            work_source = root / "work" / "source.epub"
+            work_source.parent.mkdir()
+            prompt = root / "prompt.json"
+            prompt.write_text("{}")
+
+            with mock.patch.object(epub_translate, "find_program", return_value="/usr/bin/bbook_maker"):
+                command = epub_translate.command_for(args, info, work_source, prompt)
+
+            self.assertIn("--no_disclosure", command)
+
 
 if __name__ == "__main__":
     unittest.main()
