@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 
-BBOOK_MAKER_REVISION = "4e4e20cead3431e4880b505795a19adf1537ca1a"
+BBOOK_MAKER_REVISION = "c3c6b967f7be8e1cc5ba1f85a14093e793efe292"
 BBOOK_MAKER_SPEC = (
     "git+https://github.com/sl2782087/bilingual_book_maker.git@"
     + BBOOK_MAKER_REVISION
