@@ -28,11 +28,12 @@ When redoing damaged localized images and the user supplies the original-languag
 | Flat/white background, timetable, chart, screenshot | Deterministic local erase and typesetting; protect numbers and lines |
 | Paper texture, simple gradient, map | Neighbor sampling, clone, or bounded inpainting, then local typesetting |
 | Text over a photo or illustration | Small text-removal mask, review a clean plate, then deterministic text layer |
-| Cover or designed title | Treat the full title as a typography group; follow [image-artwork.md](image-artwork.md) |
+| Cover or designed title / styled layout | Whole-image generation (gpt-image-2); follow [image-artwork.md](image-artwork.md). No erase-and-paste as final. |
+| Informational labels only (map/floorplan/table/callout) | Erase then replace/overlay with local typesetting; match position/size/color; no occlusion, misalignment, or remnants |
 | SVG with editable `<text>` | Edit text nodes and inspect layout; do not rasterize without reason |
 | Unreadable scan or uncertain proper noun | Mark `uncertain`; never invent text |
 
-Whole-image generation is not the default. When generative editing is needed, use it only to reconstruct the approved background region. Composite only the reviewed mask back onto the original, then render exact Chinese locally. Never trust generated glyphs as final text.
+**Judge first:** designed typography/layout → whole-image generation (see [image-artwork.md](image-artwork.md)); informational labels only → erase then replace/overlay, matching the original without occlusion or misalignment. For informational repairs, generative editing may only reconstruct an approved background mask, then render exact Chinese locally.
 
 ## 3. Define regions independently
 
@@ -50,7 +51,7 @@ Before placing new text, inspect the erased area for faint scan/JPEG halos as we
 2. **Visual typography:** inspect the whole image and each changed area at 2–4× for remnants, seams, missing glyphs, clipping, awkward wrapping, line damage, and inconsistent style.
 3. **Pixel constraints:** run `audit_regions.py` with the independently defined whitelist and protection regions. A passing pixel report does not prove the translation is right.
 
-For covers, separately approve the clean plate, independent text layer, final cover, and protected content. For other images, still keep the clean plate whenever background repair is non-trivial.
+For covers, run the four whole-image gates in [image-artwork.md](image-artwork.md) and get user visual approval before pack. For other images that use background repair, still keep a clean plate whenever repair is non-trivial.
 
 ## 5. Optimize and pack
 
