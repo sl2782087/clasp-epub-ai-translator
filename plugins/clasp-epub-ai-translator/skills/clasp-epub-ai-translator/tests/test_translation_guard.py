@@ -80,7 +80,7 @@ class TranslationGuardTests(unittest.TestCase):
             info = epub_translate.inspect_epub(source)
             current_work = epub_translate.planned_paths(args, info)[1]
             with mock.patch.object(
-                epub_translate, "PROMPT_POLICY_VERSION", "2026-09-22.1"
+                epub_translate, "PROMPT_POLICY_VERSION", "2026-10-03.1"
             ):
                 previous_work = epub_translate.planned_paths(args, info)[1]
             self.assertNotEqual(current_work, previous_work)
@@ -240,7 +240,7 @@ Analysis: I need to check the translation field.</pre>"""
                 self.assertIn(b'href="chapter.xhtml#anchor"', chapter)
                 self.assertIn("EPUB/nav.xhtml", zf.namelist())
 
-    def test_command_always_includes_no_disclosure_flag(self) -> None:
+    def test_command_passes_generated_prompt_and_no_disclosure_flag(self) -> None:
         with tempfile.TemporaryDirectory() as temp_name:
             root = Path(temp_name)
             source = write_epub(root / "source.epub", '<p id="anchor">測試文本</p>')
@@ -256,12 +256,19 @@ Analysis: I need to check the translation field.</pre>"""
             work_source = root / "work" / "source.epub"
             work_source.parent.mkdir()
             prompt = root / "prompt.json"
-            prompt.write_text("{}")
+            epub_translate.build_prompt(prompt, args)
 
             with mock.patch.object(epub_translate, "find_program", return_value="/usr/bin/bbook_maker"):
                 command = epub_translate.command_for(args, info, work_source, prompt)
 
             self.assertIn("--no_disclosure", command)
+            passed_prompt = Path(command[command.index("--prompt") + 1])
+            self.assertEqual(passed_prompt, prompt)
+            payload = json.loads(passed_prompt.read_text(encoding="utf-8"))
+            self.assertTrue(payload["system"])
+            self.assertTrue(
+                payload["user"].format(language="Chinese", text="原文").endswith("原文")
+            )
 
 
 if __name__ == "__main__":
