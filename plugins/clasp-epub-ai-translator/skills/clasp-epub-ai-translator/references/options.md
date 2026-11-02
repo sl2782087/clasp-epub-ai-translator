@@ -18,6 +18,7 @@ The values below are saved as defaults by the page. Explicit command-line option
 | Choice | Values | Default |
 |---|---|---|
 | Output | `chinese`, `bilingual` | `chinese` |
+| Source language | `auto`, `ja`, `en`, `ko`, `fr`, `de`, `es`, `it`, `ru` | `auto` (detected from the book text; the defaults page does not ask) |
 | Chinese script | `zh-hans`, `zh-hant` | `zh-hans` |
 | Layout | `horizontal`, `vertical`, `preserve` | `horizontal` |
 | Quality | `economy`, `balanced`, `quality` | `balanced` |
