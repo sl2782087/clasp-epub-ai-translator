@@ -71,6 +71,8 @@ The deterministic wrapper is `scripts/epub_translate.py`. It uses the isolated `
 
 Before translating prose, read [references/chinese-publication.md](references/chinese-publication.md). Apply its Chinese-first rules to the translated column; retain the source column when the user chooses bilingual output. Ordinary dialogue, sound effects, and names need readable Chinese, while spelling, pronunciation, ruby distinctions, and unresolved riddle forms may need minimal original material to keep clues observable without revealing answers early.
 
+The same reference covers contextual forms of address, viewpoint-limited identity, recurring concepts and riddle wording, attribution, and Chinese punctuation. The wrapper's initial-translation prompt carries the core constraints into paragraph translation; full-book editorial review still checks their application against the source.
+
 Review the engine output before calling it a finished Chinese edition. Inventory residual source-language text with locations and reasons, resolve ordinary untranslated passages, and use accessible, separately identified translator notes only where needed. The paragraph translator must not invent inline editorial notes or a replacement riddle; the host agent arranges notes after checking the related source passages and reveal order. Preserve structural markers, emphasize only what the source emphasizes, and verify note links and return links in the final package. The wrapper's contamination and structure checks do not perform this semantic/editorial review.
 
 ## Safety and correctness
