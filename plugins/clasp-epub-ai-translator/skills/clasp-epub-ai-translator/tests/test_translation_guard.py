@@ -263,6 +263,37 @@ Analysis: I need to check the translation field.</pre>"""
 
             self.assertIn("--no_disclosure", command)
 
+    def test_source_language_detection_and_prompt(self) -> None:
+        detect = epub_translate.detect_language_text
+        self.assertEqual(detect("「そうだね」と彼は言った。" * 5), "ja")
+        self.assertEqual(detect("The detective opened the door and looked at the body of the man. " * 5), "en")
+        self.assertEqual(detect("Le détective ouvre la porte et regarde les traces dans la neige. " * 5), "fr")
+        self.assertEqual(detect("Der Detektiv öffnet die Tür und sieht die Spuren, die nicht da sind. " * 5), "de")
+        self.assertEqual(detect("탐정은 문을 열고 방 안을 살펴보았다. " * 5), "ko")
+        with tempfile.TemporaryDirectory() as temp_name:
+            root = Path(temp_name)
+            source = write_epub(root / "source.epub", "<p>The detective opened the door and the body of the man was there, and he said it was cold. </p>" * 20)
+            args = epub_translate.parser().parse_args(
+                ["plan", str(source), "--provider", "custom", "--engine", "openai", "--model", "m", "--output-dir", str(root), "--scope", "full"]
+            )
+            with mock.patch.object(epub_translate, "load_settings", return_value=epub_translate.DEFAULT_SETTINGS):
+                epub_translate.apply_translation_defaults(args)
+            info = epub_translate.inspect_epub(source)
+            self.assertEqual(args.source_language, "auto")
+            args.source_language = epub_translate.detect_source_language(info)
+            self.assertEqual(args.source_language, "en")
+            prompt_path = root / "prompt.json"
+            epub_translate.build_prompt(prompt_path, args)
+            prompt = json.loads(prompt_path.read_text(encoding="utf-8"))
+            self.assertIn("English-to-Chinese", prompt["system"])
+            self.assertIn("following English text", prompt["user"])
+            with mock.patch.object(epub_translate, "find_program", return_value="/usr/bin/bbook_maker"):
+                command = epub_translate.command_for(args, info, root / "w.epub", prompt_path)
+            self.assertEqual(command[command.index("--source_lang") + 1], "en")
+            args.source_language = "ja"
+            epub_translate.build_prompt(prompt_path, args)
+            self.assertIn("Japanese-to-Chinese", json.loads(prompt_path.read_text(encoding="utf-8"))["system"])
+
 
 if __name__ == "__main__":
     unittest.main()
